@@ -1,0 +1,228 @@
+:root {
+  color-scheme: dark;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+body {
+  background: #111317;
+  color: #f7f8fb;
+  margin: 0;
+}
+
+.settings-shell {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 32px 18px;
+}
+
+.settings-panel {
+  background: #181b20;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.34);
+  box-sizing: border-box;
+  max-width: 720px;
+  padding: 28px;
+  width: 100%;
+}
+
+.settings-header {
+  align-items: flex-start;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+}
+
+.eyebrow {
+  color: #9ba6b6;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  margin: 0 0 8px;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  font-size: 28px;
+  line-height: 34px;
+  margin-bottom: 14px;
+}
+
+h2 {
+  font-size: 18px;
+  line-height: 24px;
+}
+
+.summary,
+li {
+  color: #d5dae3;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.status-badge {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  color: #e7ebf2;
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px 10px;
+}
+
+.status-badge.is-ready {
+  background: rgba(45, 212, 125, 0.14);
+  color: #a7f3c2;
+}
+
+.status-badge.is-missing {
+  background: rgba(255, 183, 77, 0.14);
+  color: #ffdca3;
+}
+
+.settings-form {
+  margin: 26px 0;
+}
+
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.second-label {
+  margin-top: 22px;
+}
+
+.input-row {
+  display: flex;
+  gap: 10px;
+}
+
+input {
+  background: #0f1115;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  box-sizing: border-box;
+  color: #ffffff;
+  flex: 1 1 auto;
+  font-size: 14px;
+  min-width: 0;
+  padding: 12px 13px;
+}
+
+input[type="checkbox"] {
+  flex: 0 0 auto;
+  min-width: auto;
+  width: auto;
+}
+
+.debug-row {
+  align-items: center;
+  color: #d5dae3;
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+input:focus {
+  border-color: #78a8ff;
+  outline: 2px solid rgba(120, 168, 255, 0.18);
+}
+
+button,
+.link-grid a {
+  border-radius: 8px;
+  box-sizing: border-box;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+button {
+  border: 0;
+  cursor: pointer;
+  padding: 12px 14px;
+}
+
+.button-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.primary-button {
+  background: #ffffff;
+  color: #101217;
+}
+
+.secondary-button,
+#toggleKey {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.guide {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 22px;
+}
+
+ol {
+  padding-left: 22px;
+}
+
+.link-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 18px;
+}
+
+.link-grid a {
+  background: rgba(120, 168, 255, 0.12);
+  border: 1px solid rgba(120, 168, 255, 0.22);
+  color: #cfe0ff;
+  padding: 12px;
+}
+
+.link-grid a:hover {
+  background: rgba(120, 168, 255, 0.18);
+}
+
+.message {
+  color: #a7f3c2;
+  font-size: 13px;
+  margin: 18px 0 0;
+  min-height: 18px;
+}
+
+@media (max-width: 640px) {
+  .settings-header,
+  .input-row,
+  .button-row {
+    display: block;
+  }
+
+  .status-badge {
+    display: inline-flex;
+    margin-bottom: 12px;
+  }
+
+  #toggleKey,
+  .button-row button {
+    margin-top: 10px;
+    width: 100%;
+  }
+
+  .link-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,339 @@
+.song-previewer-card {
+  align-items: stretch;
+  background: rgba(18, 19, 22, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.32);
+  box-sizing: border-box;
+  color: #ffffff;
+  display: flex;
+  font-family: Arial, Helvetica, sans-serif;
+  gap: 12px;
+  min-height: 124px;
+  min-width: 260px;
+  padding: 10px;
+  position: fixed;
+  right: 28px;
+  top: 264px;
+  width: 266px;
+  z-index: 2147483647;
+}
+
+.song-previewer-card--audio {
+  height: 124px;
+}
+
+.song-previewer-card--youtube {
+  display: block;
+  min-height: 252px;
+  min-width: 300px;
+  padding: 0;
+  width: 320px;
+}
+
+.song-previewer-card--dragging {
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.42);
+  user-select: none;
+}
+
+.song-previewer-card--resizing {
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.42);
+  user-select: none;
+}
+
+.song-previewer-youtube-frame {
+  background: #000000;
+  border: 0;
+  border-radius: 8px 8px 0 0;
+  display: block;
+  height: calc(100% - 116px);
+  min-height: 168px;
+  width: 100%;
+}
+
+.song-previewer-youtube-header {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  min-height: 96px;
+  padding: 10px 40px 14px 12px;
+}
+
+.song-previewer-drag-handle {
+  cursor: move;
+  touch-action: none;
+}
+
+.song-previewer-resize-handle {
+  border-bottom: 2px solid rgba(255, 255, 255, 0.42);
+  border-right: 2px solid rgba(255, 255, 255, 0.42);
+  bottom: 7px;
+  cursor: nwse-resize;
+  height: 13px;
+  position: absolute;
+  right: 7px;
+  touch-action: none;
+  width: 13px;
+}
+
+.song-previewer-artwork {
+  align-items: center;
+  background: linear-gradient(135deg, #2d3239, #15171b);
+  border-radius: 7px;
+  color: rgba(255, 255, 255, 0.72);
+  display: flex;
+  flex: 0 0 100px;
+  font-size: 40px;
+  font-weight: 700;
+  height: 100px;
+  justify-content: center;
+  overflow: hidden;
+  width: 100px;
+}
+
+.song-previewer-artwork img {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.song-previewer-info {
+  align-self: center;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.song-previewer-card--youtube .song-previewer-info {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.song-previewer-provider {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 700;
+  gap: 5px;
+  line-height: 1;
+  margin-bottom: 8px;
+  max-width: 100%;
+  padding: 5px 8px;
+  white-space: nowrap;
+}
+
+.song-previewer-badge-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.song-previewer-badge-row .song-previewer-provider {
+  margin-bottom: 0;
+}
+
+
+.song-previewer-provider-icon {
+  align-items: center;
+  display: inline-flex;
+  height: 16px;
+  justify-content: center;
+  width: 20px;
+}
+
+.song-previewer-provider-icon svg {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+.song-previewer-provider--apple {
+  background: rgba(250, 45, 85, 0.16);
+  color: #ffd7df;
+}
+
+.song-previewer-provider--apple .song-previewer-provider-icon {
+  width: 16px;
+}
+
+.song-previewer-provider--youtube {
+  background: rgba(255, 0, 0, 0.15);
+  color: #ffd8d8;
+}
+
+.song-previewer-provider--youtube .song-previewer-provider-icon {
+  width: 22px;
+}
+
+.song-previewer-title,
+.song-previewer-subtitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.song-previewer-title {
+  display: -webkit-box;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 18px;
+  max-height: 36px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+}
+
+.song-previewer-subtitle {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+  line-height: 15px;
+  margin-top: 5px;
+}
+
+.song-previewer-debug {
+  color: #ffdc9a;
+  display: -webkit-box;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11px;
+  line-height: 14px;
+  margin-top: 6px;
+  max-height: 42px;
+  overflow: hidden;
+  word-break: break-word;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.song-previewer-card--youtube .song-previewer-title {
+  max-height: 38px;
+  word-break: break-word;
+}
+
+.song-previewer-card--youtube .song-previewer-subtitle {
+  display: -webkit-box;
+  max-height: 30px;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.song-previewer-icon-button,
+.song-previewer-play-button,
+.song-previewer-wrong-button,
+.song-previewer-language-button {
+  appearance: none;
+  border: 0;
+  cursor: pointer;
+  flex: 0 0 auto;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.song-previewer-icon-button {
+  align-self: flex-start;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  color: #ffffff;
+  display: inline-flex;
+  font-size: 18px;
+  height: 28px;
+  justify-content: center;
+  line-height: 28px;
+  padding: 0;
+  width: 28px;
+}
+
+.song-previewer-icon-button:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.song-previewer-play-button {
+  align-self: center;
+  background: #ffffff;
+  border-radius: 999px;
+  color: #111317;
+  font-size: 12px;
+  font-weight: 700;
+  min-width: 52px;
+  padding: 7px 11px;
+}
+
+.song-previewer-play-button:hover {
+  background: #e9eef5;
+}
+
+.song-previewer-actions {
+  align-self: center;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+}
+
+.song-previewer-wrong-button,
+.song-previewer-language-button {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 10px;
+  white-space: nowrap;
+}
+
+.song-previewer-wrong-button:hover,
+.song-previewer-language-button:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.song-previewer-card--youtube .song-previewer-actions {
+  align-self: flex-start;
+  margin-top: 10px;
+}
+
+.song-previewer-card--loading .song-previewer-title::after {
+  animation: song-previewer-pulse 1s infinite;
+  content: "";
+}
+
+.song-previewer-card--error {
+  border-color: rgba(255, 98, 98, 0.55);
+}
+
+@media (max-width: 700px) {
+  .song-previewer-card {
+    right: 12px;
+    top: 92px;
+    width: min(266px, calc(100vw - 24px));
+  }
+
+  .song-previewer-card--youtube {
+    width: min(320px, calc(100vw - 24px));
+  }
+}
+
+@keyframes song-previewer-pulse {
+  0% {
+    content: "";
+  }
+
+  33% {
+    content: ".";
+  }
+
+  66% {
+    content: "..";
+  }
+
+  100% {
+    content: "...";
+  }
+}

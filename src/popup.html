@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Song Previewer</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main class="popup-shell">
+      <div class="brand-row">
+        <div class="app-mark">♪</div>
+        <div>
+          <h1>Song Previewer</h1>
+          <p id="statusText">Checking settings...</p>
+        </div>
+        <div class="toggle-container">
+          <label class="switch" title="Toggle Extension On/Off">
+            <input type="checkbox" id="extensionToggle" checked>
+            <span class="slider round"></span>
+          </label>
+        </div>
+      </div>
+
+      <button id="openOptions" type="button">Open settings</button>
+
+      <p class="hint">Apple previews work without setup. Add a YouTube Data API key for iframe fallback.</p>
+    </main>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

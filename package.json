@@ -1,0 +1,13 @@
+{
+  "name": "song-previewer",
+  "version": "1.0.0",
+  "description": "Chrome extension that plays a direct 30-second song preview when you highlight a song name on any webpage.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}

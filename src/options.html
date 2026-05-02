@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Song Previewer Settings</title>
+    <link rel="stylesheet" href="options.css">
+  </head>
+  <body>
+    <main class="settings-shell">
+      <section class="settings-panel">
+        <div class="settings-header">
+          <div>
+            <p class="eyebrow">Song Previewer</p>
+            <h1>Extension Settings</h1>
+          </div>
+          <span id="statusBadge" class="status-badge">Checking...</span>
+        </div>
+
+        <p class="summary">
+          Apple/iTunes is used first. If Apple has no preview, the extension searches YouTube with your API key.
+        </p>
+
+        <form id="settingsForm" class="settings-form">
+          <label for="apiKey">YouTube Data API v3 key</label>
+          <div class="input-row">
+            <input id="apiKey" name="apiKey" type="password" autocomplete="off" spellcheck="false" placeholder="Paste API key here">
+            <button id="toggleKey" type="button">Show</button>
+          </div>
+
+          <div class="button-row">
+            <button type="submit" class="primary-button">Save key</button>
+            <button id="clearKey" type="button" class="secondary-button">Clear</button>
+          </div>
+
+        </form>
+
+        <section class="guide">
+          <h2>How to create the key</h2>
+          <ol>
+            <li>Open Google Cloud Console and create or select a project.</li>
+            <li>Enable <strong>YouTube Data API v3</strong> for that project.</li>
+            <li>Go to APIs &amp; Services, then Credentials.</li>
+            <li>Create an <strong>API key</strong>.</li>
+            <li>Paste the key above and save.</li>
+          </ol>
+
+          <div class="link-grid">
+            <a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" rel="noreferrer">Enable YouTube Data API v3</a>
+            <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noreferrer">Create API key</a>
+            <a href="https://developers.google.com/youtube/registering_an_application" target="_blank" rel="noreferrer">Official credential guide</a>
+            <a href="https://developers.google.com/youtube/v3/docs/search/list" target="_blank" rel="noreferrer">Search API docs</a>
+          </div>
+        </section>
+
+        <p id="message" class="message" role="status"></p>
+      </section>
+    </main>
+
+    <script src="options.js"></script>
+  </body>
+</html>
