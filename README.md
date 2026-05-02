@@ -9,7 +9,7 @@
 
 <div align="center">
   <h1>🎧 Song Previewer</h1>
-  <p><strong>A magical Chrome extension that plays a direct 30-second song preview whenever you highlight a song name on any webpage!</strong></p>
+  <p><strong>A Chrome extension that plays a direct 30-second song preview whenever you highlight a song name on any webpage!</strong></p>
 </div>
 
 <hr />
@@ -17,7 +17,7 @@
 ## ✨ Features
 
 - 🎵 **Instant Playback:** Highlight any song title with a normal mouse drag selection to instantly hear a 30-second preview.
-- 🍏 **Apple Music Integration:** Searches the iTunes API first for high-quality, direct `previewUrl` audio files.
+- 🍎 **Apple Music Integration:** Searches the iTunes API first for high-quality, direct `previewUrl` audio files.
 - 🎥 **YouTube Fallback:** Automatically falls back to the official YouTube iframe embed if no iTunes result is found.
 - 🌐 **Gemini Language Detection:** Uses Google's Gemini AI to automatically detect the language of the selected song title.
 - 🎛️ **Customizable UI:** Drag the album art to position the floating player anywhere on your screen. Resizable from the bottom-right corner! (Your layout is remembered per-website).
@@ -27,6 +27,7 @@
 
 ## 🚀 Installation (Drag & Drop)
 
+# Chrome Browser
 Since this extension is not distributed on the Chrome Web Store, you can easily install it using the `.crx` file provided in the Releases section.
 
 1. Navigate to the **Releases** section on the right side of this GitHub repository.
@@ -40,8 +41,8 @@ Since this extension is not distributed on the Chrome Web Store, you can easily 
 
 ## ⚙️ Advanced Setup
 
-### YouTube Fallback Setup (Optional)
-The YouTube fallback uses an iframe because YouTube playback must stay inside the official YouTube player.
+### YouTube Player Setup
+The YouTube player uses an iframe because YouTube playback must stay inside the official YouTube player as per rules.
 
 1. Go to the [Google Cloud Console](https://console.cloud.google.com/).
 2. Create a new project and enable the **YouTube Data API v3**.
@@ -50,19 +51,14 @@ The YouTube fallback uses an iframe because YouTube playback must stay inside th
 5. Click **Open settings**.
 6. Paste your API key and save!
 
-### Gemini Language Detection (Optional)
-1. Get a [Gemini API Key](https://aistudio.google.com/).
-2. Open the extension settings via the Chrome toolbar.
-3. Paste your Gemini API key. The extension will securely send the highlighted text to Gemini to display the language label.
-
 ---
 
 ## 🛠️ Technical Notes
 
-- 🚫 No Vercel servers or middleware used. The extension communicates directly with Apple and YouTube APIs!
+- ✅ No proxies used. The extension communicates directly with Apple and YouTube APIs!
 - 🚫 Does NOT rely on heavy Apple Music web embeds.
 - 🔊 If Chrome blocks automatic autoplay on a site, a convenient `Play` button will appear next to your selected text.
 
 <div align="center">
-  <i>Made with ❤️ for music lovers</i>
+  <i>Made with ❤️ for everyone</i>
 </div>
