@@ -25,7 +25,7 @@
 
 ## 🚀 Installation
 
-### Chrome
+### Chromium Browsers
 1. Download the **`Song Previewer.zip`** file.
 2. Extract the ZIP file to a folder on your computer.
 3. Open Google Chrome and go to `chrome://extensions/`.
