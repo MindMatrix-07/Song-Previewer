@@ -23,18 +23,19 @@
     "service_worker": "src/background.js"
   },
   "icons": {
-    "16": "src/icon.png",
-    "48": "src/icon.png",
-    "128": "src/icon.png"
+    "16": "src/icon16.png",
+    "32": "src/icon32.png",
+    "48": "src/icon48.png",
+    "128": "src/icon128.png"
   },
   "action": {
     "default_title": "Song Previewer",
     "default_popup": "src/popup.html",
     "default_icon": {
-      "16": "src/icon.png",
-      "32": "src/icon.png",
-      "48": "src/icon.png",
-      "128": "src/icon.png"
+      "16": "src/icon16.png",
+      "32": "src/icon32.png",
+      "48": "src/icon48.png",
+      "128": "src/icon128.png"
     }
   },
   "side_panel": {
