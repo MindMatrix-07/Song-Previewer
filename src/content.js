@@ -4,11 +4,11 @@ const SELECTION_DELAY_MS = 80;
 const PREVIEW_PANEL_TTL_MS = 31000;
 const POSITION_PADDING = 12;
 const MIN_CARD_WIDTH = 260;
-const MIN_CARD_HEIGHT = 124;
+const MIN_CARD_HEIGHT = 126;
 const MAX_CARD_WIDTH = 560;
 const MAX_CARD_HEIGHT = 460;
 const DEFAULT_AUDIO_WIDTH = 556;
-const DEFAULT_AUDIO_HEIGHT = 164;
+const DEFAULT_AUDIO_HEIGHT = 166;
 const DEFAULT_YOUTUBE_WIDTH = 560;
 const DEFAULT_YOUTUBE_HEIGHT = 420;
 const DEFAULT_BOTTOM_OFFSET = 54;
@@ -137,6 +137,7 @@ async function playPreviewRequest(request) {
       state: "error",
       message: response?.error || "No preview found."
     });
+    checkAutoLookup(null, request.text);
     return;
   }
 
@@ -146,6 +147,7 @@ async function playPreviewRequest(request) {
       track: response.track,
       message: "Click to play"
     });
+    checkAutoLookup(response.track, request.text);
     return;
   }
 
@@ -154,6 +156,17 @@ async function playPreviewRequest(request) {
     track: response.track,
     message: "Playing preview"
   });
+  checkAutoLookup(response.track, request.text);
+}
+
+async function checkAutoLookup(track, originalText) {
+  const saved = await safeStorageGet("settings:auto-lookup");
+  if (saved["settings:auto-lookup"] === true) {
+    chrome.runtime.sendMessage({
+      type: "SEARCH_SONG_LANGUAGE",
+      query: track?.providerTrackName || track?.trackName || originalText
+    });
+  }
 }
 
 async function replayLastPreview() {
@@ -409,11 +422,13 @@ function showFloatingCard({ state, track, message }) {
   }
 
   if (state === "error") {
+    // Set a long timeout initially to allow AI search to finish.
+    // The language display function will shorten this to 5s once the language is shown.
     panelTimer = setTimeout(() => {
       if (floatingCard?.classList.contains("song-previewer-card--error")) {
         removeFloatingCard();
       }
-    }, 5000);
+    }, 20000);
   }
 }
 
@@ -790,5 +805,346 @@ function ignoreExtensionInvalidated(error) {
 
   if (!message.includes("Extension context invalidated")) {
     throw error;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Side panel follow-up: listen for storage signal from background.js
+// Fires when background wants to send a follow-up to the Google AI page
+// that is loaded inside the side panel (not reachable via tabs.sendMessage).
+// ---------------------------------------------------------------------------
+
+if (chrome.storage?.session) {
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== "session") return;
+    if (!changes["session:sidepanel-followup"]) return;
+
+    const val = changes["session:sidepanel-followup"].newValue;
+    if (!val?.query || !val?.ts) return;
+
+    // Only react if this page is a Google AI Mode page (udm=50).
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("udm") !== "50") return;
+
+    // Debounce: ignore signals older than 3 s (handles multiple content scripts).
+    if (Date.now() - val.ts > 3000) return;
+
+    // Try to type the follow-up query into the Google AI follow-up textarea.
+    const textareas = document.querySelectorAll("textarea");
+    let followUpBox = null;
+
+    for (const box of textareas) {
+      const ph = box.placeholder?.toLowerCase() || "";
+      if (ph.includes("follow up") || ph.includes("ask anything")) {
+        followUpBox = box;
+        break;
+      }
+    }
+
+    if (followUpBox) {
+      followUpBox.value = val.query;
+      followUpBox.dispatchEvent(new Event("input", { bubbles: true }));
+      followUpBox.dispatchEvent(new KeyboardEvent("keydown", {
+        key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true
+      }));
+    } else {
+      // Follow-up textarea not yet available — navigate to a fresh AI Mode search.
+      window.location.href =
+        `https://www.google.com/search?q=${encodeURIComponent(val.query)}&udm=50`;
+    }
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Debug overlay — press Alt+D to toggle
+// ---------------------------------------------------------------------------
+
+let debugOverlay = null;
+
+document.addEventListener("keydown", (e) => {
+  if (e.altKey && e.key.toLowerCase() === "d") {
+    e.preventDefault();
+    toggleDebugOverlay();
+  }
+});
+
+function toggleDebugOverlay() {
+  if (debugOverlay) {
+    debugOverlay.remove();
+    debugOverlay = null;
+    return;
+  }
+  buildDebugOverlay();
+}
+
+function buildDebugOverlay() {
+  // Container
+  debugOverlay = document.createElement("div");
+  debugOverlay.id = "sp-debug-overlay";
+  Object.assign(debugOverlay.style, {
+    position: "fixed",
+    top: "16px",
+    right: "16px",
+    width: "420px",
+    maxHeight: "88vh",
+    overflowY: "auto",
+    zIndex: "2147483647",
+    fontFamily: "'Segoe UI', system-ui, monospace",
+    fontSize: "12px",
+    lineHeight: "1.55",
+    background: "rgba(10,10,18,0.96)",
+    border: "1px solid rgba(120,100,255,0.4)",
+    borderRadius: "12px",
+    boxShadow: "0 8px 40px rgba(0,0,0,0.7), 0 0 0 1px rgba(120,100,255,0.15)",
+    color: "#d0d4e8",
+    padding: "0",
+    backdropFilter: "blur(12px)"
+  });
+
+  // Header bar
+  const header = document.createElement("div");
+  Object.assign(header.style, {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "10px 14px 8px",
+    borderBottom: "1px solid rgba(255,255,255,0.08)",
+    background: "rgba(100,80,255,0.12)",
+    borderRadius: "12px 12px 0 0"
+  });
+  header.innerHTML = `
+    <span style="font-weight:700;font-size:13px;color:#a89bff">🎵 Song Previewer — Debug</span>
+    <span style="color:#666;font-size:11px">Alt+D to close</span>
+  `;
+
+  // Body
+  const body = document.createElement("div");
+  body.style.padding = "12px 14px";
+
+  // Loading state
+  body.innerHTML = `<div style="color:#666;text-align:center;padding:20px">Loading…</div>`;
+
+  // Refresh button
+  const footer = document.createElement("div");
+  Object.assign(footer.style, {
+    display: "flex",
+    gap: "8px",
+    padding: "8px 14px 12px",
+    borderTop: "1px solid rgba(255,255,255,0.06)"
+  });
+
+  const refreshBtn = makeDebugButton("⟳ Refresh", "#4a3fff");
+  refreshBtn.onclick = () => fetchAndRender(body);
+
+  const closeBtn = makeDebugButton("✕ Close", "#3a3a4a");
+  closeBtn.onclick = () => { debugOverlay?.remove(); debugOverlay = null; };
+
+  const testBtn = makeDebugButton("▶ Test Language", "#1a5a3a");
+  testBtn.title = "Send a test SEARCH_SONG_LANGUAGE message";
+  testBtn.onclick = () => {
+    chrome.runtime.sendMessage({
+      type: "SEARCH_SONG_LANGUAGE",
+      query: "Bohemian Rhapsody"
+    }, (resp) => {
+      appendDebugLine(body, `Test send → response: ${JSON.stringify(resp)}`);
+    });
+  };
+
+  footer.append(refreshBtn, testBtn, closeBtn);
+  debugOverlay.append(header, body, footer);
+  document.documentElement.appendChild(debugOverlay);
+
+  fetchAndRender(body);
+}
+
+function fetchAndRender(body) {
+  body.innerHTML = `<div style="color:#666;text-align:center;padding:20px">Fetching from background…</div>`;
+
+  chrome.runtime.sendMessage({ type: "GET_DEBUG_INFO" }, (info) => {
+    if (chrome.runtime.lastError) {
+      body.innerHTML = `<div style="color:#ff6b6b;padding:8px">Error: ${chrome.runtime.lastError.message}</div>`;
+      return;
+    }
+    renderDebugInfo(body, info);
+  });
+}
+
+function renderDebugInfo(body, info) {
+  body.innerHTML = "";
+
+  // ── Status section
+  const section = (title) => {
+    const h = document.createElement("div");
+    Object.assign(h.style, {
+      color: "#a89bff",
+      fontWeight: "700",
+      fontSize: "11px",
+      textTransform: "uppercase",
+      letterSpacing: "0.06em",
+      margin: "10px 0 5px",
+      paddingBottom: "3px",
+      borderBottom: "1px solid rgba(255,255,255,0.06)"
+    });
+    h.textContent = title;
+    body.appendChild(h);
+  };
+
+  const row = (label, value, ok) => {
+    const r = document.createElement("div");
+    Object.assign(r.style, {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "baseline",
+      padding: "2px 0",
+      gap: "8px"
+    });
+    const lEl = document.createElement("span");
+    lEl.style.color = "#8090a8";
+    lEl.textContent = label;
+    const vEl = document.createElement("span");
+    vEl.style.color = ok === true ? "#6af0a0" : ok === false ? "#ff7070" : "#e0e0f0";
+    vEl.style.fontWeight = "600";
+    vEl.style.wordBreak = "break-all";
+    vEl.textContent = String(value ?? "—");
+    r.append(lEl, vEl);
+    body.appendChild(r);
+  };
+
+  if (info.error) {
+    row("Background error", info.error, false);
+  }
+
+  section("Settings");
+  row("Side Panel enabled", info.sidePanelEnabled, info.sidePanelEnabled === true);
+  row("Auto-close timeout", info.sidePanelTimeout !== undefined ? `${info.sidePanelTimeout}s` : "default 10s");
+  row("YouTube key present", info.hasYouTubeKey, info.hasYouTubeKey);
+
+  section("Runtime State");
+  row("chrome.sidePanel API", info.hasSidePanelAPI, info.hasSidePanelAPI);
+  row("sidePanelOpen (memory)", info.sidePanelOpen, info.sidePanelOpen === true);
+  row("sidePanelTabId (memory)", info.sidePanelTabId);
+  row("cache: enabled (gesture path)", info.cachedSidePanelEnabled, info.cachedSidePanelEnabled === true);
+  row("cache: timeout (gesture path)", info.cachedSidePanelTimeout !== undefined ? `${info.cachedSidePanelTimeout}s` : "—");
+
+
+  section("Session Storage");
+  if (info.sessionData) {
+    const keys = Object.keys(info.sessionData);
+    if (keys.length === 0) {
+      row("(empty)", "");
+    } else {
+      for (const k of keys) {
+        const v = info.sessionData[k];
+        row(k.replace("session:", ""), typeof v === "object" ? JSON.stringify(v) : v);
+      }
+    }
+  }
+
+  section("Active Alarms");
+  if (info.alarms?.length) {
+    for (const a of info.alarms) {
+      row(a.name, `fires @ ${a.scheduledTime.slice(11, 19)}`);
+    }
+  } else {
+    row("(none)", "");
+  }
+
+  section("Background Event Log");
+  const logWrap = document.createElement("div");
+  Object.assign(logWrap.style, {
+    background: "rgba(0,0,0,0.35)",
+    borderRadius: "6px",
+    padding: "8px",
+    maxHeight: "200px",
+    overflowY: "auto",
+    fontFamily: "monospace",
+    fontSize: "11px"
+  });
+
+  if (info.log?.length) {
+    for (const entry of [...info.log].reverse()) {
+      const line = document.createElement("div");
+      line.style.borderBottom = "1px solid rgba(255,255,255,0.04)";
+      line.style.padding = "2px 0";
+      const dataStr = Object.keys(entry.data || {}).length
+        ? ` <span style="color:#667">${JSON.stringify(entry.data)}</span>`
+        : "";
+      line.innerHTML = `<span style="color:#556">${entry.ts}</span> <span style="color:#c0c8ff">${entry.msg}</span>${dataStr}`;
+      logWrap.appendChild(line);
+    }
+  } else {
+    logWrap.innerHTML = `<span style="color:#556">No events yet — click Song Language to generate logs</span>`;
+  }
+  body.appendChild(logWrap);
+}
+
+function appendDebugLine(body, text) {
+  const line = document.createElement("div");
+  line.style.cssText = "padding:4px 0;color:#6af0a0;font-size:11px;font-family:monospace;border-top:1px solid rgba(255,255,255,0.06);margin-top:4px";
+  line.textContent = `[${new Date().toISOString().slice(11,23)}] ${text}`;
+  body.appendChild(line);
+}
+
+function makeDebugButton(label, bg) {
+  const b = document.createElement("button");
+  Object.assign(b.style, {
+    background: bg,
+    border: "none",
+    borderRadius: "6px",
+    color: "#fff",
+    cursor: "pointer",
+    fontSize: "11px",
+    fontWeight: "600",
+    padding: "5px 10px",
+    flex: "1"
+  });
+  b.textContent = label;
+  return b;
+}
+
+// ---------------------------------------------------------------------------
+// Silent AI Language Display
+// ---------------------------------------------------------------------------
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === "SHOW_AI_LANGUAGE") {
+    displayLanguageInCard(message.text);
+    sendResponse({ ok: true });
+    return true;
+  }
+});
+
+function displayLanguageInCard(text) {
+  const floatingCard = document.querySelector(".song-previewer-card");
+  if (!floatingCard) return;
+
+  const infoWrap = floatingCard.querySelector(".song-previewer-info");
+  if (!infoWrap) return;
+
+  let langEl = floatingCard.querySelector(".song-previewer-ai-lang");
+  if (!langEl) {
+    langEl = document.createElement("div");
+    langEl.className = "song-previewer-ai-lang";
+    langEl.style.fontSize = "0.82rem";
+    langEl.style.color = "#e2dfff";
+    langEl.style.marginTop = "8px";
+    langEl.style.padding = "8px 10px";
+    langEl.style.background = "rgba(120,100,255,0.15)";
+    langEl.style.border = "1px solid rgba(120,100,255,0.25)";
+    langEl.style.borderRadius = "8px";
+    langEl.style.lineHeight = "1.5";
+    infoWrap.appendChild(langEl);
+  }
+
+  langEl.textContent = text;
+
+  // If we are in the error state, restart the hide timer for 5 seconds now that language is shown
+  if (floatingCard.classList.contains("song-previewer-card--error")) {
+    clearTimeout(panelTimer);
+    panelTimer = setTimeout(() => {
+      if (floatingCard?.classList.contains("song-previewer-card--error")) {
+        removeFloatingCard();
+      }
+    }, 5000);
   }
 }

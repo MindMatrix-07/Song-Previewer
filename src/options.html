@@ -55,6 +55,84 @@
 
         <p id="message" class="message" role="status"></p>
       </section>
+
+      <!-- ── AI Language Lookup ─────────────────────────────────── -->
+      <section class="settings-panel settings-panel--sidepanel">
+        <div class="settings-header">
+          <div>
+            <p class="eyebrow">Song Language</p>
+            <h2 class="panel-title">AI Language Lookup</h2>
+          </div>
+          <span id="sidepanelBadge" class="status-badge is-missing">Off</span>
+        </div>
+
+        <p class="summary">
+          Configure how the AI Language Lookup behaves when you click <strong>Song Language</strong> or use Auto-Lookup.
+        </p>
+
+        <form id="sidepanelForm" class="settings-form">
+
+          <!-- Search Mode Dropdown -->
+          <div style="margin-bottom: 20px;">
+            <label for="searchMode" style="display:block; font-size: 0.85rem; font-weight: 600; color: #e2e2ee; margin-bottom: 8px;">
+              Search Mode
+            </label>
+            <select id="searchMode" name="searchMode" style="width: 100%; padding: 10px; border-radius: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #fff; font-size: 0.85rem; cursor: pointer; appearance: none; outline: none;">
+              <option style="background: #120f1e;" value="silent">Silent Background Search (Extracts to floating card)</option>
+              <option style="background: #120f1e;" value="tab">Normal Search (Opens Google AI in a new tab)</option>
+              <option style="background: #120f1e;" value="incognito">Incognito Search (Opens Google AI in an incognito window)</option>
+            </select>
+            <p style="font-size: 0.7rem; color: #6b6888; margin-top: 6px;">Select how the search is triggered. Silent mode requires Google to maintain their UI layout to work.</p>
+          </div>
+
+          <!-- Auto Lookup Toggle -->
+          <div class="toggle-row">
+            <label class="toggle-label" for="autolookupToggle">
+              Auto-Lookup Language
+              <span class="toggle-hint">Automatically search language when highlighting a song</span>
+            </label>
+            <label class="switch" title="Toggle Auto-Lookup">
+              <input type="checkbox" id="autolookupToggle">
+              <span class="slider round"></span>
+            </label>
+          </div>
+
+          <!-- Incognito Warning -->
+          <div id="incognitoWarning" class="incognito-warning" style="display:none; background: rgba(255, 120, 120, 0.08); border: 1px solid rgba(255,100,100,0.3); padding: 12px; border-radius: 8px; margin-top: 12px;">
+            <p style="color: #ffb4b4; font-size: 0.85rem; line-height: 1.4; margin-bottom: 8px;">
+              <strong>Incognito Permission Required</strong><br>
+              To open the AI popup in incognito mode (recommended), you must explicitly allow it. Otherwise it will open normally.
+            </p>
+            <button type="button" id="btnOpenExtSettings" style="background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; transition: background 0.2s;">
+              Open Settings &rarr; Turn on "Allow in Incognito"
+            </button>
+          </div>
+
+          <!-- Auto-close timeout -->
+          <div id="timeoutRow" class="timeout-row" aria-hidden="true">
+            <label for="sidepanelTimeout">Auto-close after</label>
+            <div class="timeout-input-row">
+              <input
+                id="sidepanelTimeout"
+                name="sidepanelTimeout"
+                type="number"
+                min="5"
+                max="300"
+                step="1"
+                value="10"
+                disabled
+              >
+              <span class="timeout-unit">seconds</span>
+            </div>
+            <p class="timeout-hint">Range: 5 – 300 seconds</p>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn-primary">Save Settings</button>
+          </div>
+        </form>
+        <p id="sidepanelMessage" class="message" role="status"></p>
+      </section>
     </main>
 
     <script src="options.js"></script>

@@ -3,24 +3,36 @@
   "name": "Song Previewer",
   "description": "Highlight a song name to instantly hear a 30-second preview.",
   "version": "1.0.0",
-  "minimum_chrome_version": "109",
+  "minimum_chrome_version": "114",
   "permissions": [
     "activeTab",
+    "alarms",
     "offscreen",
+    "scripting",
+    "sidePanel",
     "storage",
     "tabs"
   ],
   "host_permissions": [
     "https://generativelanguage.googleapis.com/*",
     "https://www.googleapis.com/youtube/v3/*",
-    "https://itunes.apple.com/*"
+    "https://itunes.apple.com/*",
+    "*://*.google.com/*"
   ],
   "background": {
     "service_worker": "src/background.js"
   },
+  "icons": {
+    "16": "src/icon.png",
+    "48": "src/icon.png",
+    "128": "src/icon.png"
+  },
   "action": {
     "default_title": "Song Previewer",
     "default_popup": "src/popup.html"
+  },
+  "side_panel": {
+    "default_path": "src/sidepanel.html"
   },
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'; frame-src https://www.youtube.com https://www.youtube-nocookie.com;"
@@ -41,12 +53,23 @@
         "src/content.js"
       ],
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "*://*.google.com/search*",
+        "*://google.com/search*"
+      ],
+      "js": [
+        "src/google-scraper.js"
+      ],
+      "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [
     {
       "resources": [
-        "src/offscreen.html"
+        "src/offscreen.html",
+        "src/sidepanel.html"
       ],
       "matches": [
         "<all_urls>"

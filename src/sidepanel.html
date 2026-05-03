@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Song Language — AI Lookup</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: #0d0d14;
+      color: #e2e2ee;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Header ── */
+    .sp-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px 12px;
+      background: linear-gradient(135deg, #1a1630 0%, #120f1e 100%);
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      flex-shrink: 0;
+    }
+    .sp-header-icon { font-size: 1.3rem; }
+    .sp-header-title { font-size: 0.95rem; font-weight: 700; color: #c4b8ff; }
+    .sp-header-sub   { font-size: 0.72rem; color: #6b6888; margin-top: 1px; }
+
+    /* ── Body ── */
+    .sp-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* ── Query chip ── */
+    .sp-query {
+      background: rgba(120,100,255,0.12);
+      border: 1px solid rgba(120,100,255,0.25);
+      border-radius: 10px;
+      padding: 10px 13px;
+      font-size: 0.82rem;
+      color: #b0a8d8;
+      line-height: 1.5;
+    }
+    .sp-query strong { color: #d4ceff; }
+
+    /* ── Answer box ── */
+    .sp-answer {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 14px;
+      font-size: 0.87rem;
+      line-height: 1.65;
+      color: #d8d4ee;
+      white-space: pre-wrap;
+      word-break: break-word;
+      flex: 1;
+    }
+    .sp-answer.is-loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      color: #6b6888;
+      min-height: 120px;
+    }
+    .sp-answer.is-error { color: #ff7070; background: rgba(255,80,80,0.06); }
+
+    /* Spinner */
+    .sp-spinner {
+      width: 32px; height: 32px;
+      border: 3px solid #2a2540;
+      border-top-color: #7c6af7;
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Auto-close bar ── */
+    .sp-timer-wrap {
+      flex-shrink: 0;
+      padding: 0 16px 4px;
+    }
+    .sp-timer-label {
+      font-size: 0.72rem;
+      color: #5a5878;
+      margin-bottom: 4px;
+    }
+    .sp-timer-bar-bg {
+      height: 3px;
+      background: rgba(255,255,255,0.07);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .sp-timer-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #7c6af7, #a78bfa);
+      border-radius: 99px;
+      width: 100%;
+      transition: width 1s linear;
+    }
+
+    /* ── Footer ── */
+    .sp-footer {
+      flex-shrink: 0;
+      display: flex;
+      gap: 8px;
+      padding: 10px 16px 14px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+    .sp-btn {
+      flex: 1;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 8px 10px;
+      transition: opacity 0.15s;
+    }
+    .sp-btn:hover { opacity: 0.85; }
+    .sp-btn--primary { background: #5a4fcf; color: #fff; }
+    .sp-btn--ghost   { background: rgba(255,255,255,0.08); color: #aaa; }
+
+    /* no-key state */
+    .sp-no-key {
+      text-align: center;
+      padding: 24px 16px;
+      color: #6b6888;
+      font-size: 0.82rem;
+      line-height: 1.6;
+    }
+    .sp-no-key a {
+      color: #9d8fff;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="sp-header">
+    <div class="sp-header-icon">🎵</div>
+    <div>
+      <div class="sp-header-title">Song Language Lookup</div>
+      <div class="sp-header-sub" id="sp-sub">Powered by Gemini AI</div>
+    </div>
+  </div>
+
+  <div class="sp-body" id="sp-body">
+    <div class="sp-query" id="sp-query" style="display:none"></div>
+    <div class="sp-answer is-loading" id="sp-answer">
+      <div class="sp-spinner"></div>
+      <span>Loading…</span>
+    </div>
+  </div>
+
+  <div class="sp-timer-wrap" id="sp-timer-wrap" style="display:none">
+    <div class="sp-timer-label" id="sp-timer-label">Auto-closing…</div>
+    <div class="sp-timer-bar-bg"><div class="sp-timer-bar" id="sp-timer-bar"></div></div>
+  </div>
+
+  <div class="sp-footer">
+    <button class="sp-btn sp-btn--ghost" id="sp-close-btn">Dismiss</button>
+    <button class="sp-btn sp-btn--primary" id="sp-open-btn">Open in new tab ↗</button>
+  </div>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>

@@ -4,8 +4,47 @@ const OFFSCREEN_URL = "src/offscreen.html";
 const CACHE_TTL_MS = 1000 * 60 * 60 * 24;
 const CACHE_VERSION = 10;
 const YOUTUBE_SETTINGS_KEY = "settings:youtube-api-key";
+const SEARCH_MODE_KEY = "settings:search-mode";
+const SIDEPANEL_TIMEOUT_KEY = "settings:sidepanel-timeout";
+const SIDEPANEL_QUERY_SESSION_KEY = "session:sidepanel-query";
+const SIDEPANEL_FOLLOWUP_SESSION_KEY = "session:sidepanel-followup";
+const SIDEPANEL_ALARM = "sidepanel-autoclose";
+const SIDEPANEL_TABID_SESSION_KEY = "session:sidepanel-tabid";
+const DEFAULT_SIDEPANEL_TIMEOUT = 10;
 
 let creatingOffscreenDocument;
+
+// Track states
+let cachedSearchMode = "silent";
+let cachedSidePanelTimeout = DEFAULT_SIDEPANEL_TIMEOUT;
+
+chrome.storage.local.get([SEARCH_MODE_KEY, SIDEPANEL_TIMEOUT_KEY]).then((saved) => {
+  cachedSearchMode = typeof saved[SEARCH_MODE_KEY] === "string" ? saved[SEARCH_MODE_KEY] : "silent";
+  cachedSidePanelTimeout = typeof saved[SIDEPANEL_TIMEOUT_KEY] === "number"
+    ? saved[SIDEPANEL_TIMEOUT_KEY]
+    : DEFAULT_SIDEPANEL_TIMEOUT;
+});
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== "local") return;
+  if (changes[SEARCH_MODE_KEY]) {
+    cachedSearchMode = typeof changes[SEARCH_MODE_KEY].newValue === "string" ? changes[SEARCH_MODE_KEY].newValue : "silent";
+  }
+  if (changes[SIDEPANEL_TIMEOUT_KEY]) {
+    cachedSidePanelTimeout = typeof changes[SIDEPANEL_TIMEOUT_KEY].newValue === "number"
+      ? changes[SIDEPANEL_TIMEOUT_KEY].newValue
+      : DEFAULT_SIDEPANEL_TIMEOUT;
+  }
+});
+
+// Rolling debug log (last 30 entries).
+const debugLog = [];
+function dbg(msg, data = {}) {
+  const entry = { ts: new Date().toISOString().slice(11, 23), msg, data };
+  debugLog.push(entry);
+  if (debugLog.length > 30) debugLog.shift();
+  console.log(`[SongPreviewer BG] ${msg}`, data);
+}
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.type === "SONG_PREVIEW_FROM_SELECTION") {
@@ -35,37 +74,419 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message?.type === "SEARCH_SONG_LANGUAGE") {
-    const aiQuery = `What language is the song ${message.query}?`;
-    const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(aiQuery)}&udm=50`;
+    dbg("SEARCH_SONG_LANGUAGE received", { query: message.query, cachedSearchMode });
 
-    chrome.tabs.query({ url: "*://*.google.com/search*" }, (tabs) => {
-      // Find a tab that has udm=50 in its URL (match patterns don't support query parameters)
-      const tab = tabs.find(t => t.url && t.url.includes("udm=50"));
-
-      if (tab) {
-        // Reuse the found AI Mode tab by sending it a message to type the follow-up
-        chrome.windows.update(tab.windowId, { focused: true });
-        chrome.tabs.update(tab.id, { active: true });
-
-        chrome.tabs.sendMessage(tab.id, {
-          type: "TYPE_FOLLOW_UP_QUESTION",
-          query: aiQuery
-        }).catch(() => {
-          // Fallback if the content script fails or isn't injected yet
-          chrome.tabs.update(tab.id, { url: searchUrl });
-        });
-      } else {
-        // Create a new tab if none exists
-        chrome.tabs.create({ url: searchUrl });
-      }
-    });
-
-    sendResponse({ ok: true });
+    // Do the async follow-up work
+    handleSongLanguageSearch(message.query, sender)
+      .then(() => sendResponse({ ok: true }))
+      .catch((err) => {
+        dbg("SEARCH_SONG_LANGUAGE async error", { error: err?.message });
+        sendResponse({ ok: false, error: err?.message });
+      });
     return true;
   }
 
+  if (message?.type === "CHECK_SILENT_TAB") {
+    chrome.storage.local.get("silentTabs").then(data => {
+      const silentTabs = data.silentTabs || {};
+      sendResponse(!!silentTabs[sender.tab?.id]);
+    });
+    return true;
+  }
+
+  if (message?.type === "SILENT_AI_RESULT") {
+    const silentTabId = sender.tab?.id;
+    const resultText = message.text;
+
+    chrome.storage.local.get("silentTabs").then(async (data) => {
+      const silentTabs = data.silentTabs || {};
+      const silentInfo = silentTabs[silentTabId];
+      if (silentTabId && silentInfo) {
+        const callerTabId = silentInfo.callerTabId;
+        const isWindow = silentInfo.isWindow;
+        delete silentTabs[silentTabId];
+        await chrome.storage.local.set({ silentTabs });
+
+        // Close the silent tab or its window
+        if (isWindow) {
+          try {
+            const tabInfo = await chrome.tabs.get(silentTabId);
+            if (tabInfo && tabInfo.windowId) {
+              chrome.windows.remove(tabInfo.windowId).catch(() => {});
+            }
+          } catch {}
+        } else {
+          try { chrome.tabs.remove(silentTabId); } catch {}
+        }
+        
+        try { chrome.alarms.clear(`KILL_SILENT_TAB_${silentTabId}`); } catch {}
+
+        // Send the result to the caller tab
+        if (callerTabId) {
+          chrome.tabs.sendMessage(callerTabId, {
+            type: "SHOW_AI_LANGUAGE",
+            text: resultText
+          }).catch(() => {});
+        }
+      }
+    });
+    return true;
+  }
+
+  if (message?.type === "GET_DEBUG_INFO") {
+    chrome.storage.local.get([
+      SEARCH_MODE_KEY,
+      SIDEPANEL_TIMEOUT_KEY,
+      YOUTUBE_SETTINGS_KEY
+    ]).then(async (localData) => {
+      let sessionData = {};
+      try { sessionData = await chrome.storage.session.get(null); } catch {}
+      let alarms = [];
+      try { alarms = await chrome.alarms.getAll(); } catch {}
+
+      sendResponse({
+        searchMode: localData[SEARCH_MODE_KEY],
+        sidePanelTimeout: localData[SIDEPANEL_TIMEOUT_KEY],
+        cachedSearchMode,
+        cachedSidePanelTimeout,
+        hasYouTubeKey: Boolean(localData[YOUTUBE_SETTINGS_KEY]),
+        hasSidePanelAPI: Boolean(chrome.sidePanel),
+        sessionData,
+        alarms: alarms.map(a => ({ name: a.name, scheduledTime: new Date(a.scheduledTime).toISOString() })),
+        log: [...debugLog]
+      });
+    }).catch((err) => {
+      sendResponse({ error: err?.message, log: [...debugLog] });
+    });
+    return true;
+  }
+
+  if (message?.type === "DEBUG_LOG") {
+    dbg(`[Scraper] ${message.msg}`, message.data);
+    return true;
+  }
+
+
   return false;
 });
+
+// ---------------------------------------------------------------------------
+// Silent Tab fail-safe alarm
+// ---------------------------------------------------------------------------
+
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (alarm.name.startsWith("KILL_SILENT_TAB_")) {
+    const tabId = parseInt(alarm.name.replace("KILL_SILENT_TAB_", ""), 10);
+    
+    const data = await chrome.storage.local.get("silentTabs");
+    const silentTabs = data.silentTabs || {};
+    const silentInfo = silentTabs[tabId];
+    
+    if (silentInfo) {
+      const callerTabId = silentInfo.callerTabId;
+      const isWindow = silentInfo.isWindow;
+      delete silentTabs[tabId];
+      await chrome.storage.local.set({ silentTabs });
+
+      // Kill the tab or window
+      if (isWindow) {
+        try {
+          const tabInfo = await chrome.tabs.get(tabId);
+          if (tabInfo && tabInfo.windowId) {
+            chrome.windows.remove(tabInfo.windowId).catch(() => {});
+          }
+        } catch {}
+      } else {
+        try { chrome.tabs.remove(tabId); } catch {}
+      }
+
+      // Notify caller
+      if (callerTabId) {
+        chrome.tabs.sendMessage(callerTabId, {
+          type: "SHOW_AI_LANGUAGE",
+          text: "Google AI took too long. Please try Normal or Incognito search."
+        }).catch(() => {});
+      }
+    }
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Song language: silent tab vs. tab logic
+// ---------------------------------------------------------------------------
+
+async function handleSongLanguageSearch(songQuery, sender) {
+  const cleanQuery = songQuery.trim();
+  const aiQuery = `What language is the song "${cleanQuery}"?`;
+
+  const searchMode = cachedSearchMode;
+
+  dbg("handleSongLanguageSearch (async)", { searchMode });
+
+  if (searchMode === "silent") {
+    // Extremely strict prompt so the AI never adds extra text
+    const silentQuery = `What language is the song "${cleanQuery}"? Think and search web before showing results. Reply with ONLY the language name in a single word. Do not add any other text.`;
+    await openSilentBackgroundTab(silentQuery, sender.tab?.id);
+  } else if (searchMode === "incognito") {
+    await openIncognitoWindow(aiQuery);
+  } else {
+    dbg("Falling back to normal tab", { reason: "setting is tab" });
+    openLanguageInTab(aiQuery);
+  }
+}
+
+async function openIncognitoWindow(aiQuery) {
+  const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(aiQuery)}&udm=50`;
+
+  let currentWin = null;
+  try { currentWin = await chrome.windows.getLastFocused(); } catch {}
+
+  const width = 420;
+  let height = 900;
+  let left = undefined;
+  let top = undefined;
+
+  if (currentWin && currentWin.left !== undefined && currentWin.width !== undefined && currentWin.height !== undefined) {
+    height = currentWin.height;
+    left = currentWin.left + currentWin.width - width;
+    top = currentWin.top;
+  }
+
+  try {
+    await chrome.windows.create({
+      url: searchUrl,
+      width, height, left, top,
+      type: "popup",
+      incognito: true
+    });
+  } catch (err) {
+    dbg("Incognito failed (missing permission?), falling back to normal", { error: err?.message });
+    openLanguageInTab(aiQuery);
+  }
+}
+
+// Persistent background tab for silent searches
+let silentTabId = null;
+
+// Clean up if the user manually closes the silent tab
+chrome.tabs.onRemoved.addListener((tabId) => {
+  if (tabId === silentTabId) {
+    silentTabId = null;
+    dbg("Silent search tab was closed, will open a new one next time.");
+  }
+});
+
+async function openSilentBackgroundTab(aiQuery, callerTabId) {
+  const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(aiQuery)}&udm=50`;
+
+  if (callerTabId) {
+    chrome.tabs.sendMessage(callerTabId, {
+      type: "SHOW_AI_LANGUAGE",
+      text: "Search in progress..."
+    }).catch(() => {});
+  }
+
+  // Known languages list
+  const KNOWN_LANGUAGES = [
+    "Arabic", "Assamese", "Bengali", "Bikol", "Brazilian Portuguese",
+    "Bulgarian", "Cebuano", "Chinese", "Croatian", "Czech", "Danish",
+    "Dutch", "English", "Finnish", "French", "German", "Greek",
+    "Haitian Creole", "Haryanvi", "Hausa", "Hebrew", "Hindi", "Hungarian",
+    "Igbo", "Indonesian", "Italian", "Japanese", "Javanese", "Korean",
+    "Lingála", "Malay", "Malayalam", "Marathi", "Nepali", "Norwegian",
+    "Odia", "Persian", "Punjabi", "Polish", "Portuguese", "Romanian",
+    "Russian", "Sanskrit", "Shona", "Slovak", "Spanish", "Sundanese",
+    "Swedish", "Tagalog", "Tamil", "Telugu", "Thai", "Tsonga", "Turkish",
+    "Ukrainian", "Urdu", "Venda", "Vietnamese", "Yoruba", "Xhosa", "Zulu"
+  ];
+
+  let usingExistingTab = false;
+  let baseTextLength = 0; // How much text was already in the chat before our question
+
+  // --- Check if we have a live persistent tab ---
+  if (silentTabId !== null) {
+    try {
+      await chrome.tabs.get(silentTabId); // throws if tab doesn't exist
+      usingExistingTab = true;
+      dbg(`Reusing existing silent tab ${silentTabId}, sending follow-up...`);
+
+      // Snapshot the current text length so we only scan NEW replies
+      const snapResults = await chrome.scripting.executeScript({
+        target: { tabId: silentTabId },
+        func: () => document.body?.innerText?.length || 0
+      });
+      baseTextLength = snapResults?.[0]?.result || 0;
+
+      // Type the follow-up question into the existing AI chat
+      await chrome.scripting.executeScript({
+        target: { tabId: silentTabId },
+        func: (query) => {
+          const textareas = document.querySelectorAll("textarea");
+          let box = null;
+          for (const ta of textareas) {
+            const ph = ta.placeholder?.toLowerCase() || "";
+            if (ph.includes("follow up") || ph.includes("ask anything") || ph.includes("message")) {
+              box = ta; break;
+            }
+          }
+          if (!box) {
+            // Fallback: just click the first visible textarea
+            box = Array.from(textareas).find(t => t.offsetParent !== null);
+          }
+          if (box) {
+            box.focus();
+            const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value").set;
+            nativeSetter.call(box, query);
+            box.dispatchEvent(new Event("input", { bubbles: true }));
+            setTimeout(() => {
+              box.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true }));
+              const btn = box.closest("form")?.querySelector('button[type="submit"], button[aria-label*="send" i]');
+              if (btn) btn.click();
+            }, 300);
+          }
+        },
+        args: [aiQuery]
+      });
+    } catch {
+      // Tab is gone
+      silentTabId = null;
+      usingExistingTab = false;
+    }
+  }
+
+  // --- Open a new tab if we don't have a live one ---
+  if (!usingExistingTab) {
+    dbg(`Opening new silent background window (minimized)...`);
+    // Open in a minimized window so it's completely out of sight
+    const win = await chrome.windows.create({
+      url: searchUrl,
+      state: "minimized",
+      focused: false
+    });
+    silentTabId = win.tabs[0].id;
+    dbg(`New silent tab ${silentTabId} in window ${win.id}`);
+    // Wait for the page + AI to load before first scan
+    await new Promise(r => setTimeout(r, 4500));
+  } else {
+    // Shorter wait for follow-up response
+    await new Promise(r => setTimeout(r, 2500));
+  }
+
+  // --- Poll for a language in the (new) text ---
+  const MAX_WAIT_MS = 20000;
+  const POLL_INTERVAL_MS = 800;
+  const start = Date.now();
+  let found = null;
+  let captchaDetected = false;
+
+  while (!found && !captchaDetected && (Date.now() - start) < MAX_WAIT_MS) {
+    try {
+      const results = await chrome.scripting.executeScript({
+        target: { tabId: silentTabId },
+        func: (langs, baseLen) => {
+          const fullText = document.body?.innerText || "";
+
+          if (fullText.includes("detected unusual traffic") || fullText.includes("not a robot")) {
+            return { lang: null, snippet: "", captcha: true };
+          }
+
+          // For first search (baseLen=0): scan only the LAST 2000 chars where
+          // the AI response sits. For follow-ups: scan only the new text added.
+          const textToScan = baseLen > 0
+            ? fullText.substring(baseLen)
+            : fullText.substring(Math.max(0, fullText.length - 2000));
+
+          // Split into clean lines
+          const lines = textToScan.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+          const snippet = lines.slice(0, 2).join(" | ").substring(0, 100);
+
+          // Check line-by-line for strict equality or prefix (matches AI output reliably, ignores UI)
+          for (const line of lines) {
+            for (const lang of langs) {
+              const lowerLine = line.toLowerCase();
+              const lowerLang = lang.toLowerCase();
+              
+              if (lowerLine === lowerLang || 
+                  lowerLine.startsWith(lowerLang + " ") || 
+                  lowerLine.startsWith(lowerLang + ".") ||
+                  lowerLine.startsWith("**" + lowerLang + "**") ||
+                  lowerLine === `language: ${lowerLang}`) {
+                return { lang, snippet, captcha: false };
+              }
+            }
+          }
+          return { lang: null, snippet, captcha: false };
+        },
+        args: [KNOWN_LANGUAGES, baseTextLength]
+      });
+
+      const res = results?.[0]?.result;
+      if (res?.snippet) dbg(`[BG Poll] Snippet: ${res.snippet}`);
+
+      if (res?.captcha) {
+        captchaDetected = true;
+        dbg(`[BG Poll] CAPTCHA detected! Making tab visible.`);
+        break;
+      }
+      if (res?.lang) {
+        found = res.lang;
+        dbg(`[BG Poll] Found language: "${found}"`);
+        break;
+      }
+    } catch (err) {
+      dbg(`[BG Poll] executeScript error: ${err?.message}`);
+      // Tab may have been closed mid-poll
+      silentTabId = null;
+      break;
+    }
+
+    await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
+  }
+
+  if (captchaDetected) {
+    chrome.tabs.update(silentTabId, { active: true }).catch(() => {});
+    if (callerTabId) {
+      chrome.tabs.sendMessage(callerTabId, {
+        type: "SHOW_AI_LANGUAGE",
+        text: "⚠️ Google CAPTCHA appeared. Please solve it in the tab that just opened, then click Song Language again."
+      }).catch(() => {});
+    }
+    silentTabId = null; // Reset so next call opens a fresh tab
+    return;
+  }
+
+  const finalResult = found || "Language not found. Try the Incognito Search mode.";
+  dbg(`[BG Poll] Final: "${finalResult}"`);
+
+  if (callerTabId) {
+    chrome.tabs.sendMessage(callerTabId, {
+      type: "SHOW_AI_LANGUAGE",
+      text: finalResult
+    }).catch(() => {});
+  }
+}
+
+function openLanguageInTab(aiQuery) {
+  const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(aiQuery)}&udm=50`;
+
+  chrome.tabs.query({ url: "*://*.google.com/search*" }, (tabs) => {
+    const tab = tabs.find(t => t.url && t.url.includes("udm=50"));
+
+    if (tab) {
+      chrome.windows.update(tab.windowId, { focused: true });
+      chrome.tabs.update(tab.id, { active: true });
+
+      chrome.tabs.sendMessage(tab.id, {
+        type: "TYPE_FOLLOW_UP_QUESTION",
+        query: aiQuery
+      }).catch(() => {
+        chrome.tabs.update(tab.id, { url: searchUrl });
+      });
+    } else {
+      chrome.tabs.create({ url: searchUrl });
+    }
+  });
+}
 
 async function handleSelectionPreview(rawText, context = {}, resultOffset = 0) {
   const query = normalizeSelection(rawText);

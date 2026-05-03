@@ -1,27 +1,52 @@
+/* ============================================================
+   Song Previewer — Floating Player UI
+   Premium glassmorphism dark theme redesign
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* ── Card shell ─────────────────────────────────────────── */
 .song-previewer-card {
   align-items: stretch;
-  background: rgba(18, 19, 22, 0.96);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 8px;
-  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.32);
+  background: linear-gradient(135deg, rgba(18, 20, 30, 0.97) 0%, rgba(24, 26, 38, 0.97) 100%);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 18px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.55),
+    0 2px 8px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
   box-sizing: border-box;
   color: #ffffff;
   display: flex;
-  font-family: Arial, Helvetica, sans-serif;
-  gap: 12px;
-  min-height: 124px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+  gap: 0;
+  min-height: 126px;
   min-width: 260px;
-  padding: 10px;
+  overflow: hidden;
+  padding: 0;
   position: fixed;
   right: 28px;
   top: 264px;
   width: 266px;
   z-index: 2147483647;
+  animation: song-previewer-slide-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.song-previewer-card--audio {
-  height: 124px;
+@keyframes song-previewer-slide-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
+
+/* inner padding wrapper */
+.song-previewer-card:not(.song-previewer-card--youtube) {
+  padding: 12px;
+  gap: 10px;
+}
+
+/* ── States ─────────────────────────────────────────────── */
+.song-previewer-card--audio {}
 
 .song-previewer-card--youtube {
   display: block;
@@ -32,19 +57,51 @@
 }
 
 .song-previewer-card--dragging {
-  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.42);
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, 0.65),
+    0 4px 16px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
   user-select: none;
+  cursor: grabbing !important;
 }
 
 .song-previewer-card--resizing {
-  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.42);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
   user-select: none;
 }
 
+.song-previewer-card--error {
+  border-color: rgba(255, 85, 85, 0.35);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 85, 85, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* ── Resize handle ──────────────────────────────────────── */
+.song-previewer-resize-handle {
+  border-bottom: 2px solid rgba(255, 255, 255, 0.25);
+  border-right: 2px solid rgba(255, 255, 255, 0.25);
+  border-radius: 0 0 3px 0;
+  bottom: 8px;
+  cursor: nwse-resize;
+  height: 11px;
+  position: absolute;
+  right: 8px;
+  touch-action: none;
+  transition: border-color 0.2s;
+  width: 11px;
+}
+
+.song-previewer-card:hover .song-previewer-resize-handle {
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+/* ── YouTube ────────────────────────────────────────────── */
 .song-previewer-youtube-frame {
   background: #000000;
   border: 0;
-  border-radius: 8px 8px 0 0;
+  border-radius: 18px 18px 0 0;
   display: block;
   height: calc(100% - 116px);
   min-height: 168px;
@@ -56,39 +113,41 @@
   display: flex;
   gap: 10px;
   min-height: 96px;
-  padding: 10px 40px 14px 12px;
+  padding: 10px 44px 14px 12px;
 }
 
+/* ── Drag handle ────────────────────────────────────────── */
 .song-previewer-drag-handle {
-  cursor: move;
+  cursor: grab;
   touch-action: none;
 }
 
-.song-previewer-resize-handle {
-  border-bottom: 2px solid rgba(255, 255, 255, 0.42);
-  border-right: 2px solid rgba(255, 255, 255, 0.42);
-  bottom: 7px;
-  cursor: nwse-resize;
-  height: 13px;
-  position: absolute;
-  right: 7px;
-  touch-action: none;
-  width: 13px;
+.song-previewer-drag-handle:active {
+  cursor: grabbing;
 }
 
+/* ── Artwork ────────────────────────────────────────────── */
 .song-previewer-artwork {
   align-items: center;
-  background: linear-gradient(135deg, #2d3239, #15171b);
-  border-radius: 7px;
-  color: rgba(255, 255, 255, 0.72);
+  background: linear-gradient(145deg, #2a2d3e, #161824);
+  border-radius: 10px;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.5);
   display: flex;
-  flex: 0 0 100px;
-  font-size: 40px;
+  flex: 0 0 96px;
+  font-size: 36px;
   font-weight: 700;
-  height: 100px;
+  height: 96px;
   justify-content: center;
   overflow: hidden;
-  width: 100px;
+  width: 96px;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.song-previewer-artwork:hover {
+  transform: scale(1.03);
 }
 
 .song-previewer-artwork img {
@@ -98,6 +157,7 @@
   width: 100%;
 }
 
+/* ── Info panel ─────────────────────────────────────────── */
 .song-previewer-info {
   align-self: center;
   flex: 1 1 auto;
@@ -112,17 +172,19 @@
   overflow: hidden;
 }
 
+/* ── Provider badge ─────────────────────────────────────── */
 .song-previewer-provider {
   align-items: center;
   border-radius: 999px;
   display: inline-flex;
-  font-size: 11px;
-  font-weight: 700;
-  gap: 5px;
+  font-size: 10.5px;
+  font-weight: 600;
+  gap: 4px;
+  letter-spacing: 0.02em;
   line-height: 1;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   max-width: 100%;
-  padding: 5px 8px;
+  padding: 4px 8px 4px 6px;
   white-space: nowrap;
 }
 
@@ -131,20 +193,19 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .song-previewer-badge-row .song-previewer-provider {
   margin-bottom: 0;
 }
 
-
 .song-previewer-provider-icon {
   align-items: center;
   display: inline-flex;
-  height: 16px;
+  height: 15px;
   justify-content: center;
-  width: 20px;
+  width: 19px;
 }
 
 .song-previewer-provider-icon svg {
@@ -154,23 +215,26 @@
 }
 
 .song-previewer-provider--apple {
-  background: rgba(250, 45, 85, 0.16);
-  color: #ffd7df;
+  background: rgba(255, 55, 95, 0.18);
+  border: 1px solid rgba(255, 55, 95, 0.2);
+  color: #ff8fab;
 }
 
 .song-previewer-provider--apple .song-previewer-provider-icon {
-  width: 16px;
+  width: 15px;
 }
 
 .song-previewer-provider--youtube {
-  background: rgba(255, 0, 0, 0.15);
-  color: #ffd8d8;
+  background: rgba(255, 40, 40, 0.18);
+  border: 1px solid rgba(255, 40, 40, 0.2);
+  color: #ff9999;
 }
 
 .song-previewer-provider--youtube .song-previewer-provider-icon {
-  width: 22px;
+  width: 21px;
 }
 
+/* ── Title & subtitle ───────────────────────────────────── */
 .song-previewer-title,
 .song-previewer-subtitle {
   overflow: hidden;
@@ -180,29 +244,32 @@
 
 .song-previewer-title {
   display: -webkit-box;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 700;
-  line-height: 18px;
-  max-height: 36px;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+  max-height: 37px;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   white-space: normal;
+  color: #f0f2ff;
 }
 
 .song-previewer-subtitle {
-  color: rgba(255, 255, 255, 0.72);
-  font-size: 12px;
-  line-height: 15px;
-  margin-top: 5px;
+  color: rgba(200, 205, 230, 0.65);
+  font-size: 11.5px;
+  font-weight: 400;
+  line-height: 1.4;
+  margin-top: 3px;
 }
 
 .song-previewer-debug {
-  color: #ffdc9a;
+  color: #ffd080;
   display: -webkit-box;
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 11px;
+  font-family: inherit;
+  font-size: 10.5px;
   line-height: 14px;
-  margin-top: 6px;
+  margin-top: 5px;
   max-height: 42px;
   overflow: hidden;
   word-break: break-word;
@@ -223,6 +290,7 @@
   -webkit-line-clamp: 2;
 }
 
+/* ── Buttons base ───────────────────────────────────────── */
 .song-previewer-icon-button,
 .song-previewer-play-button,
 .song-previewer-wrong-button,
@@ -231,67 +299,99 @@
   border: 0;
   cursor: pointer;
   flex: 0 0 auto;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Close button */
 .song-previewer-icon-button {
   align-self: flex-start;
   align-items: center;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 50%;
-  color: #ffffff;
+  color: rgba(255, 255, 255, 0.7);
   display: inline-flex;
-  font-size: 18px;
-  height: 28px;
+  font-size: 16px;
+  height: 26px;
   justify-content: center;
-  line-height: 28px;
+  line-height: 1;
   padding: 0;
-  width: 28px;
+  width: 26px;
 }
 
 .song-previewer-icon-button:hover {
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  transform: scale(1.08);
 }
 
+/* Play button */
 .song-previewer-play-button {
   align-self: center;
-  background: #ffffff;
+  background: linear-gradient(135deg, #ffffff, #e8ecf8);
   border-radius: 999px;
-  color: #111317;
-  font-size: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  color: #12141e;
+  font-size: 11.5px;
   font-weight: 700;
   min-width: 52px;
-  padding: 7px 11px;
+  padding: 7px 12px;
 }
 
 .song-previewer-play-button:hover {
-  background: #e9eef5;
+  background: linear-gradient(135deg, #f0f4ff, #dde3f5);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  transform: translateY(-1px);
 }
 
+.song-previewer-play-button:active {
+  transform: translateY(0);
+}
+
+/* ── Actions column ─────────────────────────────────────── */
 .song-previewer-actions {
   align-self: center;
   display: flex;
   flex: 0 0 auto;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   justify-content: center;
 }
 
+/* Wrong match / Language buttons */
 .song-previewer-wrong-button,
 .song-previewer-language-button {
   align-items: center;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 999px;
-  color: #ffffff;
-  font-size: 12px;
-  font-weight: 700;
-  padding: 7px 10px;
+  color: rgba(220, 225, 255, 0.9);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  padding: 6px 11px;
   white-space: nowrap;
 }
 
-.song-previewer-wrong-button:hover,
+.song-previewer-wrong-button:hover {
+  background: rgba(255, 120, 90, 0.18);
+  border-color: rgba(255, 120, 90, 0.25);
+  color: #ffb8a0;
+  transform: translateY(-1px);
+}
+
 .song-previewer-language-button:hover {
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(100, 140, 255, 0.2);
+  border-color: rgba(100, 140, 255, 0.3);
+  color: #a8c0ff;
+  transform: translateY(-1px);
+}
+
+.song-previewer-wrong-button:active,
+.song-previewer-language-button:active {
+  transform: translateY(0);
 }
 
 .song-previewer-card--youtube .song-previewer-actions {
@@ -299,15 +399,23 @@
   margin-top: 10px;
 }
 
+/* ── Loading animation ──────────────────────────────────── */
 .song-previewer-card--loading .song-previewer-title::after {
-  animation: song-previewer-pulse 1s infinite;
+  animation: song-previewer-pulse 1.2s infinite;
   content: "";
 }
 
-.song-previewer-card--error {
-  border-color: rgba(255, 98, 98, 0.55);
+/* ── AI language tag ────────────────────────────────────── */
+.song-previewer-ai-lang {
+  animation: song-previewer-lang-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+@keyframes song-previewer-lang-pop {
+  from { opacity: 0; transform: scale(0.92) translateY(4px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ── Responsive ─────────────────────────────────────────── */
 @media (max-width: 700px) {
   .song-previewer-card {
     right: 12px;
@@ -320,20 +428,11 @@
   }
 }
 
+/* ── Pulse keyframes ────────────────────────────────────── */
 @keyframes song-previewer-pulse {
-  0% {
-    content: "";
-  }
-
-  33% {
-    content: ".";
-  }
-
-  66% {
-    content: "..";
-  }
-
-  100% {
-    content: "...";
-  }
+  0%   { content: ""; }
+  25%  { content: "."; }
+  50%  { content: ".."; }
+  75%  { content: "..."; }
+  100% { content: ""; }
 }
